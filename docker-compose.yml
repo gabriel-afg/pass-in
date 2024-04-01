@@ -1,0 +1,12 @@
+version: '3'
+
+services:
+  postgres_docker:
+    container_name: pass-in
+    image: postgres:latest
+    ports:
+      - "5430:5432"
+    environment:
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=root
+      - POSTGRES_DB=pass_in
