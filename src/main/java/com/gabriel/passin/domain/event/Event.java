@@ -18,10 +18,10 @@ public class Event {
     private String id;
 
     @Column(nullable = false)
-    private String tittle;
+    private String title;
 
     @Column(nullable = false)
-    private String detail;
+    private String details;
 
     @Column(nullable = false, unique = true)
     private String slug;
