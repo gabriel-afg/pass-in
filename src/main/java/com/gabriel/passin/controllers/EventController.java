@@ -1,5 +1,7 @@
 package com.gabriel.passin.controllers;
 
+import com.gabriel.passin.dto.attendee.AttendeeIdDTO;
+import com.gabriel.passin.dto.attendee.AttendeeRequestDTO;
 import com.gabriel.passin.dto.attendee.AttendeesListResponseDTO;
 import com.gabriel.passin.dto.event.EventIdDTO;
 import com.gabriel.passin.dto.event.EventRequestDTO;
@@ -36,10 +38,20 @@ public class EventController {
         return ResponseEntity.created(uri).body(newEvent);
     }
 
+    @PostMapping("/{eventId}/attendees")
+    public ResponseEntity<AttendeeIdDTO> registerAttendee(@PathVariable String eventId, @RequestBody AttendeeRequestDTO data, UriComponentsBuilder uriComponentsBuilder){
+        AttendeeIdDTO attendeeIdDTO = this.eventService.registerAttendeeOnEvent(eventId, data);
+        var uri = uriComponentsBuilder.path("/attendees/{attendeeId}/badge").buildAndExpand(attendeeIdDTO.id()).toUri();
+
+        return ResponseEntity.created(uri).body(attendeeIdDTO);
+    }
+
     @GetMapping("/attendees/{id}")
     public ResponseEntity<AttendeesListResponseDTO> getEventAttendees(@PathVariable String id){
         AttendeesListResponseDTO response = this.attendeeService.getEventsAttendee(id);
 
         return ResponseEntity.ok(response);
     }
+
+
 }

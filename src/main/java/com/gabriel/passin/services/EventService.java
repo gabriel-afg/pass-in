@@ -2,7 +2,10 @@ package com.gabriel.passin.services;
 
 import com.gabriel.passin.domain.attendee.Attendee;
 import com.gabriel.passin.domain.event.Event;
+import com.gabriel.passin.domain.event.exceptions.EventFullException;
 import com.gabriel.passin.domain.event.exceptions.EventNotFoundException;
+import com.gabriel.passin.dto.attendee.AttendeeIdDTO;
+import com.gabriel.passin.dto.attendee.AttendeeRequestDTO;
 import com.gabriel.passin.dto.event.EventIdDTO;
 import com.gabriel.passin.dto.event.EventRequestDTO;
 import com.gabriel.passin.dto.event.EventResponseDTO;
@@ -11,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.text.Normalizer;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -23,10 +27,24 @@ public class EventService {
     private AttendeeService attendeeService;
 
     public EventResponseDTO getEventDetail(String eventId){
-        Event event = this.eventRepository.findById(eventId).orElseThrow(() -> new EventNotFoundException("Evento não encontrado (id)"+eventId));
+        Event event = getEventById(eventId);
         List<Attendee> attendeeList = this.attendeeService.getAttendeesFromEvent(eventId);
 
         return new EventResponseDTO(event, attendeeList.size());
+    }
+
+    public AttendeeIdDTO registerAttendeeOnEvent(String eventId, AttendeeRequestDTO attendeeRequestDTO){ // Registrar participante
+        this.attendeeService.verifyAttendeeSubscription(attendeeRequestDTO.email(),eventId); // verifica se o participante já está no evento
+        Event event = getEventById(eventId);
+        List<Attendee> attendeeList = this.attendeeService.getAttendeesFromEvent(eventId);
+
+        if (event.getMaximun_attendees() <= attendeeList.size()) throw new EventFullException("Event is full");
+
+        Attendee newAttendee = createNewAttendee(attendeeRequestDTO, event);
+
+        this.attendeeService.registerAttendee(newAttendee);
+
+        return new AttendeeIdDTO(newAttendee.getId());
     }
 
     public EventIdDTO createEvent(EventRequestDTO data){
@@ -40,6 +58,19 @@ public class EventService {
         this.eventRepository.save(newEvent);
 
         return new EventIdDTO(newEvent.getId());
+    }
+
+    private Event getEventById(String eventId){
+        return this.eventRepository.findById(eventId).orElseThrow(() -> new EventNotFoundException("Evento não encontrado (id)"+eventId));
+    }
+
+    private Attendee createNewAttendee(AttendeeRequestDTO attendeeRequestDTO, Event event) {
+        Attendee newAttendee = new Attendee();
+        newAttendee.setName(attendeeRequestDTO.name());
+        newAttendee.setEmail(attendeeRequestDTO.email());
+        newAttendee.setEvent(event);
+        newAttendee.setCreatedAt(LocalDateTime.now());
+        return newAttendee;
     }
 
     private static String createSlug(String title){
