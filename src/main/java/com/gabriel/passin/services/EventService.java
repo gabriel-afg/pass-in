@@ -6,14 +6,12 @@ import com.gabriel.passin.domain.event.exceptions.EventNotFoundException;
 import com.gabriel.passin.dto.event.EventIdDTO;
 import com.gabriel.passin.dto.event.EventRequestDTO;
 import com.gabriel.passin.dto.event.EventResponseDTO;
-import com.gabriel.passin.repositories.AttendeeRepository;
 import com.gabriel.passin.repositories.EventRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.text.Normalizer;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class EventService {
@@ -22,11 +20,11 @@ public class EventService {
     private EventRepository eventRepository;
 
     @Autowired
-    private AttendeeRepository attendeeRepository;
+    private AttendeeService attendeeService;
 
     public EventResponseDTO getEventDetail(String eventId){
         Event event = this.eventRepository.findById(eventId).orElseThrow(() -> new EventNotFoundException("Evento não encontrado (id)"+eventId));
-        List<Attendee> attendeeList = this.attendeeRepository.findByEventId(eventId);
+        List<Attendee> attendeeList = this.attendeeService.getAttendeesFromEvent(eventId);
 
         return new EventResponseDTO(event, attendeeList.size());
     }
