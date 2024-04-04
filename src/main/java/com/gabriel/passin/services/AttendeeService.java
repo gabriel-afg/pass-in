@@ -31,16 +31,13 @@ public class AttendeeService {
     }
 
     public AttendeesListResponseDTO getEventsAttendee(String eventId) {
-        List<Attendee> attendeeList = this.getAttendeesFromEvent(eventId);
-
-        List<AttendeeDetails> attendeeDetailsList = attendeeList.stream().map(attendee -> {
-            Optional<CheckIn> checkIn = this.checkInService.getCheckIn(attendee.getId()); // Listar participantes do evento
-            LocalDateTime checkedInAt = checkIn.map(CheckIn::getCreatedAt).orElse(null);
-
-            return new AttendeeDetails(attendee.getId(), attendee.getName(), attendee.getEmail(), attendee.getCreatedAt(), checkedInAt);
-        }).toList();
-
-        return new AttendeesListResponseDTO(attendeeDetailsList);
+        return new AttendeesListResponseDTO(
+                this.getAttendeesFromEvent(eventId).stream().map(attendee -> {
+                    LocalDateTime checkedInAt = this.checkInService.getCheckIn(attendee.getId())
+                            .map(CheckIn::getCreatedAt).orElse(null);
+                    return new AttendeeDetails(attendee.getId(), attendee.getName(), attendee.getEmail(), attendee.getCreatedAt(), checkedInAt);
+                }).toList()
+        );
     }
 
     public void registerAttendee(Attendee newAttendee) {
@@ -69,7 +66,7 @@ public class AttendeeService {
         this.checkInService.registerCheckIn(attendee);
     }
 
-    private Attendee getAttendee(String attendeeId){
+    private Attendee getAttendee(String attendeeId) {
         return this.attendeeRepository.findById(attendeeId).orElseThrow(() -> new AttendeeNotFoundException("Attendee not found with id" + attendeeId));
     }
 }
