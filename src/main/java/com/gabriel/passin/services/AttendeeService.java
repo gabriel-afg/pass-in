@@ -9,7 +9,6 @@ import com.gabriel.passin.dto.attendee.AttendeeDetails;
 import com.gabriel.passin.dto.attendee.AttendeesListResponseDTO;
 import com.gabriel.passin.dto.attendee.AttendeeBadgeDTO;
 import com.gabriel.passin.repositories.AttendeeRepository;
-import com.gabriel.passin.repositories.CheckinRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -25,7 +24,7 @@ public class AttendeeService {
     private AttendeeRepository attendeeRepository;
 
     @Autowired
-    private CheckinRepository checkinRepository;
+    private CheckInService checkInService;
 
     public List<Attendee> getAttendeesFromEvent(String eventId) {
         return this.attendeeRepository.findByEventId(eventId);
@@ -35,7 +34,7 @@ public class AttendeeService {
         List<Attendee> attendeeList = this.getAttendeesFromEvent(eventId);
 
         List<AttendeeDetails> attendeeDetailsList = attendeeList.stream().map(attendee -> {
-            Optional<CheckIn> checkIn = this.checkinRepository.findByAttendeeId(attendee.getId());
+            Optional<CheckIn> checkIn = this.checkInService.getCheckIn(attendee.getId()); // Listar participantes do evento
             LocalDateTime checkedInAt = checkIn.map(CheckIn::getCreatedAt).orElse(null);
 
             return new AttendeeDetails(attendee.getId(), attendee.getName(), attendee.getEmail(), attendee.getCreatedAt(), checkedInAt);
@@ -44,8 +43,8 @@ public class AttendeeService {
         return new AttendeesListResponseDTO(attendeeDetailsList);
     }
 
-    public Attendee registerAttendee(Attendee newAttendee) {
-        return this.attendeeRepository.save(newAttendee);
+    public void registerAttendee(Attendee newAttendee) {
+        this.attendeeRepository.save(newAttendee);
     }
 
     public void verifyAttendeeSubscription(String email, String eventId) {
@@ -57,10 +56,20 @@ public class AttendeeService {
     }
 
     public AttendeeBadgeResponseDTO getAttendeeBadge(String attendeeId, UriComponentsBuilder uriComponentsBuilder) { // Retornar crachá
-        Attendee attendee = this.attendeeRepository.findById(attendeeId).orElseThrow(() -> new AttendeeNotFoundException("Attendee not found with id" + attendeeId));
+        Attendee attendee = getAttendee(attendeeId);
         var uri = uriComponentsBuilder.path("/attendees/{attendeeId}/check-in").buildAndExpand(attendeeId).toUri().toString();
         AttendeeBadgeDTO response = new AttendeeBadgeDTO(attendee.getName(), attendee.getEmail(), uri, attendee.getEvent().getId());
 
         return new AttendeeBadgeResponseDTO(response);
+    }
+
+    public void checkInAttendee(String attendeeId) {
+        Attendee attendee = this.getAttendee(attendeeId);
+
+        this.checkInService.registerCheckIn(attendee);
+    }
+
+    private Attendee getAttendee(String attendeeId){
+        return this.attendeeRepository.findById(attendeeId).orElseThrow(() -> new AttendeeNotFoundException("Attendee not found with id" + attendeeId));
     }
 }
